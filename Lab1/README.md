@@ -52,7 +52,7 @@ services:
 Note: There is a single server container, which also contains `client.py` in case you want to test without python access on the host.
 
 ## Quick Start
-Script for starting the container: `docker compose up`
+Script for starting the container: `docker compose up`   
 Script that runs server with directory as an argument: `CMD ["python3", "./server.py", "/app/content"]` (from `Dockerfile`)
 
 Content folder structure which is served:
