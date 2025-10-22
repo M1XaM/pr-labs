@@ -109,11 +109,13 @@ class HTTPServer:
             
             full_path = self.base_directory / safe_path
             
-            # Simulate work - 1 second delay
+            # Simulate work 1 second delay
             time.sleep(1)
+            # time.sleep(0.01)
             
-            # Update request counter
+            # ----- RACE CONDITION SIMULATION ------
             self.update_request_counter(str(full_path))
+            # self.race_condition_counter(str(full_path))
             
             if full_path.is_dir():
                 self.serve_directory_listing(client_socket, full_path, path)
@@ -132,6 +134,18 @@ class HTTPServer:
                 self.request_counters[file_path] += 1
             else:
                 self.request_counters[file_path] = 1
+            print(f"Updated {file_path} to {self.request_counters[file_path]}")
+
+    
+    def race_condition_counter(self, file_path):
+        if file_path in self.request_counters:
+            import time
+            time.sleep(0.1)
+            self.request_counters[file_path] += 1
+        else:
+            self.request_counters[file_path] = 1
+        print(f"Updated {file_path} to {self.request_counters[file_path]}")
+
     
     def get_request_count(self, file_path):
         with self.counter_lock:
@@ -271,6 +285,7 @@ class SingleThreadedHTTPServer(HTTPServer):
         finally:
             self.socket.close()
 
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python server.py <directory>")
@@ -280,19 +295,30 @@ def main():
     if not os.path.isdir(directory):
         print(f"Error: {directory} is not a directory")
         sys.exit(1)
-    
-    print("Choose server type:")
-    print("1. Multithreaded (default)")
-    print("2. Single-threaded")
-    choice = input("Enter choice (1 or 2): ").strip()
-    
+
+    # Default server type
+    default_server_type = "1"  # 1 = multithreaded, 2 = single-threaded
+
+    # Use environment variable to decide default vs interactive
+    use_defaults = os.environ.get("USE_DEFAULTS", "0").lower() in ("1", "true", "yes")
+
+    if use_defaults:
+        choice = default_server_type
+        print(f"USE_DEFAULTS is set → starting multithreaded server automatically with directory '{directory}'")
+    else:
+        # Interactive mode
+        print("Choose server type:")
+        print("1. Multithreaded (default)")
+        print("2. Single-threaded")
+        choice = input("Enter choice (1 or 2): ").strip() or default_server_type
+
     if choice == "2":
         server = SingleThreadedHTTPServer()
         print("Starting single-threaded server...")
     else:
         server = HTTPServer()
         print("Starting multithreaded server...")
-    
+
     server.serve_directory(directory)
 
 if __name__ == "__main__":

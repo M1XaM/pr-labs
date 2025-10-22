@@ -6,3 +6,4 @@ services:
     volumes:
       - ./content:/app/content:ro
     container_name: server
+    tty: true
